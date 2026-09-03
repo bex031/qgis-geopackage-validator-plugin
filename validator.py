@@ -21,6 +21,7 @@ from qgis.core import QgsMessageLog, Qgis
 
 from .validator_engine import ValidatorEngine
 from .ui.validator_dialog import ValidatorDialog
+from .ui.batch_validator_dialog import BatchValidatorDialog
 
 
 class GeoPackageValidator:
@@ -40,6 +41,7 @@ class GeoPackageValidator:
         self.toolbar.setObjectName('GeoPackageValidator')
         
         self.dialog = None
+        self.batch_dialog = None
         self.engine = ValidatorEngine()
 
     def add_action(self, icon_path, text, callback, enabled_flag=True,
@@ -115,18 +117,33 @@ class GeoPackageValidator:
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         icon_path = os.path.join(self.plugin_dir, 'icon.png')
+        
+        # Single file validation action
         self.add_action(
             icon_path,
-            text='Open Validator',
+            text='Single File Validator',
             callback=self.run,
+            status_tip='Validate a single GeoPackage file',
+            parent=self.iface.mainWindow())
+        
+        # Batch validation action
+        self.add_action(
+            icon_path,
+            text='Batch Validator',
+            callback=self.run_batch,
+            status_tip='Validate multiple GeoPackage files in a folder',
             parent=self.iface.mainWindow())
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
-        # Close dialog if it's open
+        # Close dialogs if open
         if self.dialog is not None:
             self.dialog.close()
             self.dialog = None
+        
+        if self.batch_dialog is not None:
+            self.batch_dialog.close()
+            self.batch_dialog = None
         
         # Close database connection
         if self.engine:
@@ -141,11 +158,15 @@ class GeoPackageValidator:
         del self.toolbar
 
     def on_dialog_closed(self):
-        """Called when the dialog is closed."""
+        """Called when the single file dialog is closed."""
         self.dialog = None
 
+    def on_batch_dialog_closed(self):
+        """Called when the batch dialog is closed."""
+        self.batch_dialog = None
+
     def run(self):
-        """Run method that performs all the real work"""
+        """Run single file validator."""
         if self.dialog is None:
             self.dialog = ValidatorDialog(self.iface, self.engine)
             # Connect close signal to reset dialog reference
@@ -154,3 +175,14 @@ class GeoPackageValidator:
         else:
             self.dialog.raise_()
             self.dialog.activateWindow()
+
+    def run_batch(self):
+        """Run batch validator."""
+        if self.batch_dialog is None:
+            self.batch_dialog = BatchValidatorDialog(self.iface, self.engine)
+            # Connect close signal to reset dialog reference
+            self.batch_dialog.closed.connect(self.on_batch_dialog_closed)
+            self.batch_dialog.show()
+        else:
+            self.batch_dialog.raise_()
+            self.batch_dialog.activateWindow()
