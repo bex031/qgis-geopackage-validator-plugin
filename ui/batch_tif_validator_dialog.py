@@ -74,7 +74,7 @@ class BatchTifValidatorDialog(QDialog):
         self.tree_model = TifResultTreeModel()
         self.tree_view = QTreeView()
         self.tree_view.setModel(self.tree_model)
-        self.tree_view.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.tree_view.header().setSectionResizeMode(0, 1)
         main_layout.addWidget(self.tree_view)
         
         # Control buttons
