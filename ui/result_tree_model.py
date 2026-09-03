@@ -3,7 +3,7 @@
 Tree model for displaying validation results in hierarchical structure
 """
 
-from qgis.PyQt.QtGui import QStandardItemModel, QStandardItem
+from qgis.PyQt.QtGui import QStandardItemModel, QStandardItem, QColor, QFont
 from qgis.PyQt.QtCore import Qt, QModelIndex
 
 
@@ -40,7 +40,7 @@ class ResultTreeModel(QStandardItemModel):
         :return: Dataset item
         """
         summary = f"Validation Completed : {passed} passed, {failed} failed, {errors} errors"
-        dataset_text = f"+ {dataset_name} : {summary}"
+        dataset_text = f"{dataset_name} : {summary}"  # Removed '+' prefix
         dataset_item = QStandardItem(dataset_text)
         dataset_item.setEditable(False)
         # Store full path as custom data
@@ -67,6 +67,14 @@ class ResultTreeModel(QStandardItemModel):
         check_item.setEditable(False)
         # Store status as custom data (Qt.UserRole = 32)
         check_item.setData(status, 32)
+        
+        # Highlight FAIL and ERROR with red color
+        if status in ['FAIL', 'ERROR']:
+            font = QFont()
+            font.setBold(True)
+            check_item.setFont(font)
+            check_item.setForeground(QColor(255, 0, 0))  # Red color
+        
         parent_item.appendRow(check_item)
         return check_item
 
@@ -111,5 +119,10 @@ class ResultTreeModel(QStandardItemModel):
         error_text = f"+ ERROR : {error_message}"
         error_item = QStandardItem(error_text)
         error_item.setEditable(False)
+        # Highlight errors in red
+        font = QFont()
+        font.setBold(True)
+        error_item.setFont(font)
+        error_item.setForeground(QColor(255, 0, 0))  # Red color
         parent_item.appendRow(error_item)
         return error_item
