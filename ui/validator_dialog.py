@@ -20,6 +20,9 @@ from .validator_worker import ValidatorWorker
 
 class ValidatorDialog(QDialog):
     """Main dialog for the GeoPackage Validator plugin."""
+    
+    # Signal emitted when dialog is closed
+    closed = pyqtSignal()
 
     def __init__(self, iface, engine, parent=None):
         """Initialize the validator dialog.
@@ -34,6 +37,8 @@ class ValidatorDialog(QDialog):
         
         self.gpkg_path = None
         self.rule_path = None
+        self.worker_thread = None
+        self.worker = None
         
         self.setWindowTitle("GeoPackage Validator")
         self.setGeometry(100, 100, 1000, 700)
@@ -156,6 +161,11 @@ class ValidatorDialog(QDialog):
         self.details_text.clear()
         self.results_table.setRowCount(0)
         
+        # Clean up previous worker thread if exists
+        if self.worker_thread is not None:
+            self.worker_thread.quit()
+            self.worker_thread.wait()
+        
         # Create and run worker thread
         self.worker = ValidatorWorker(
             self.engine, self.gpkg_path, self.rule_path
@@ -198,8 +208,12 @@ class ValidatorDialog(QDialog):
         self.status_label.setText(summary)
         self.details_text.append(f"\n{summary}")
         
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        # Clean up worker thread
+        if self.worker_thread is not None:
+            self.worker_thread.quit()
+            self.worker_thread.wait()
+            self.worker_thread = None
+            self.worker = None
 
     def on_validation_error(self, error_msg):
         """Handle validation error.
@@ -216,8 +230,12 @@ class ValidatorDialog(QDialog):
             f"An error occurred:\n\n{error_msg}"
         )
         
-        self.worker_thread.quit()
-        self.worker_thread.wait()
+        # Clean up worker thread
+        if self.worker_thread is not None:
+            self.worker_thread.quit()
+            self.worker_thread.wait()
+            self.worker_thread = None
+            self.worker = None
 
     def display_results(self, results):
         """Display validation results in the table.
@@ -335,3 +353,21 @@ class ValidatorDialog(QDialog):
                     "Export Error",
                     f"Failed to export results:\n{str(e)}"
                 )
+
+    def closeEvent(self, event):
+        """Handle dialog close event.
+        
+        :param event: Close event
+        """
+        # Clean up worker thread if still running
+        if self.worker_thread is not None:
+            self.worker_thread.quit()
+            self.worker_thread.wait()
+            self.worker_thread = None
+            self.worker = None
+        
+        # Emit closed signal
+        self.closed.emit()
+        
+        # Accept the close event
+        event.accept()
