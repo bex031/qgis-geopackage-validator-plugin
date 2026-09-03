@@ -178,11 +178,8 @@ class GeoPackageValidator:
 
     def run_batch(self):
         """Run batch validator."""
-        if self.batch_dialog is None:
-            self.batch_dialog = BatchValidatorDialog(self.iface, self.engine)
-            # Connect close signal to reset dialog reference
-            self.batch_dialog.closed.connect(self.on_batch_dialog_closed)
-            self.batch_dialog.show()
-        else:
-            self.batch_dialog.raise_()
-            self.batch_dialog.activateWindow()
+        # Always create a new instance to avoid reopening issues
+        self.batch_dialog = BatchValidatorDialog(self.iface, self.engine)
+        # Connect close signal to reset dialog reference
+        self.batch_dialog.closed.connect(self.on_batch_dialog_closed)
+        self.batch_dialog.show()
