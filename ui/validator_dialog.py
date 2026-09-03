@@ -97,11 +97,11 @@ class ValidatorDialog(QDialog):
         layout.addWidget(self.results_table)
         
         # Log/Details text
-        log_group = QGroupBox("Details")
+        log_group = QGroupBox("Details (Double-click table row to view)")
         log_layout = QVBoxLayout()
         self.details_text = QTextEdit()
         self.details_text.setReadOnly(True)
-        self.details_text.setMaximumHeight(150)
+        self.details_text.setMaximumHeight(200)
         log_layout.addWidget(self.details_text)
         log_group.setLayout(log_layout)
         layout.addWidget(log_group)
@@ -288,18 +288,28 @@ class ValidatorDialog(QDialog):
         
         if row < len(results):
             result = results[row]
-            details = f"Check ID: {result['checkID']}\n"
+            details = f"{'='*80}\n"
+            details += f"Check ID: {result['checkID']}\n"
             details += f"Description: {result['description']}\n"
             details += f"Status: {result['status']}\n"
+            details += f"{'='*80}\n"
+            
+            # Add Details from YAML if available
+            if result.get('details'):
+                details += f"\nRule Details (from YAML):\n"
+                details += f"{result['details']}\n"
+                details += f"\n{'-'*80}\n"
             
             if result['error']:
                 details += f"\nError: {result['error']}\n"
             
             if result['issues']:
                 details += f"\nIssues found: {len(result['issues'])}\n"
-                details += "Details:\n"
-                for issue in result['issues']:
-                    details += f"  {issue}\n"
+                details += f"{'-'*80}\n"
+                for idx, issue in enumerate(result['issues'], 1):
+                    details += f"Issue #{idx}: {issue}\n"
+            else:
+                details += f"\nNo issues found.\n"
             
             self.details_text.setText(details)
 
@@ -331,13 +341,18 @@ class ValidatorDialog(QDialog):
                         f.write(f"Description: {result['description']}\n")
                         f.write(f"Status: {result['status']}\n")
                         
+                        # Add Details from YAML if available
+                        if result.get('details'):
+                            f.write(f"\nRule Details (from YAML):\n")
+                            f.write(f"{result['details']}\n")
+                        
                         if result['error']:
                             f.write(f"Error: {result['error']}\n")
                         
                         if result['issues']:
-                            f.write(f"Issues: {len(result['issues'])}\n")
-                            for issue in result['issues']:
-                                f.write(f"  {issue}\n")
+                            f.write(f"\nIssues: {len(result['issues'])}\n")
+                            for idx, issue in enumerate(result['issues'], 1):
+                                f.write(f"  #{idx}: {issue}\n")
                         
                         f.write("-" * 80 + "\n\n")
                 
