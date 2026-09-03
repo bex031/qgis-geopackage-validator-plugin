@@ -64,13 +64,11 @@ class ResultTreeModel(QStandardItemModel):
         :param check_id: Check ID
         :param status: PASS, FAIL, or ERROR
         :param description: Check description
-        :param details: Check details from YAML
+        :param details: Check details from YAML (not displayed to avoid duplication)
         :return: Check item
         """
-        if details:
-            check_text = f"{check_id} : [{status}] {description} / {details}"  # Removed '+'
-        else:
-            check_text = f"{check_id} : [{status}] {description}"  # Removed '+'
+        # Only show check ID, status, and description (details moved to issues group)
+        check_text = f"{check_id} : [{status}] {description}"
         
         check_item = QStandardItem(check_text)
         check_item.setEditable(False)
@@ -92,11 +90,14 @@ class ResultTreeModel(QStandardItemModel):
         
         :param parent_item: Parent item (check)
         :param issue_count: Number of issues found
-        :param details: Additional details (not used, to avoid duplication)
+        :param details: Additional details (shown here to avoid duplication with check description)
         :return: Issues group item
         """
-        # Only show issue count, no details to avoid duplication
-        issues_text = f"({issue_count}) Issues found"
+        # Show issue count and details
+        if details:
+            issues_text = f"({issue_count}) Issues found : {details}"
+        else:
+            issues_text = f"({issue_count}) Issues found"
         
         issues_item = QStandardItem(issues_text)
         issues_item.setEditable(False)
