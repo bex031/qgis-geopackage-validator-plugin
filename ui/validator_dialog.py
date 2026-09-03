@@ -40,7 +40,7 @@ class ValidatorDialog(QDialog):
         self.worker_thread = None
         self.worker = None
         
-        self.setWindowTitle("GeoPackage Validator")
+        self.setWindowTitle("해양기본도 검사도구")
         self.setGeometry(100, 100, 1000, 700)
         
         self.init_ui()

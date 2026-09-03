@@ -6,18 +6,14 @@ qgisMinimumVersion=3.0
 qgisMaximumVersion=4.99
 description=Validates GeoPackage datasets against YAML-defined rules
 version=0.1.0
-author=Your Name
-email=your.email@example.com
-about=A QGIS plugin for validating GeoPackage files using customizable YAML rules. Supports rule definitions in YAML format with flexible SQL queries and regular expression validation.
+author=Bex
+email=dopplex@cway7.io
+about=해양기본도 검사 스크립트
 tracker=https://github.com/bex031/qgis-geopackage-validator-plugin/issues
 repository=https://github.com/bex031/qgis-geopackage-validator-plugin
 changelog=
-    0.1.0 - Initial release
-        - Support for YAML-based validation rules
-        - SQL query validation engine
-        - Regex pattern matching support
-        - Results export to CSV/TXT
-        - Progress tracking with worker threads
+    0.1.0 - 초기 버전
+
 
 tags=validation,geopackage,quality-control,yaml,data-quality
 

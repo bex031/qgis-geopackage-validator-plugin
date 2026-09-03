@@ -43,7 +43,7 @@ class BatchValidatorDialog(QDialog):
         self.worker = None
         self.summary = None  # Store summary for export
         
-        self.setWindowTitle("GeoPackage Batch Validator")
+        self.setWindowTitle("해양기본도 검사도구(폴더)")
         self.setGeometry(100, 100, 1200, 800)
         
         self.init_ui()

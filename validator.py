@@ -36,8 +36,8 @@ class GeoPackageValidator:
         self.iface = iface
         self.plugin_dir = os.path.dirname(__file__)
         self.actions = []
-        self.menu = '&GeoPackage Validator'
-        self.toolbar = self.iface.addToolBar('GeoPackageValidator')
+        self.menu = '해양기본도 관련도구'
+        self.toolbar = self.iface.addToolBar('해양기본도 관련도구')
         self.toolbar.setObjectName('GeoPackageValidator')
         
         self.dialog = None
@@ -121,17 +121,17 @@ class GeoPackageValidator:
         # Single file validation action
         self.add_action(
             icon_path,
-            text='Single File Validator',
+            text='해양기본도 검사도구',
             callback=self.run,
-            status_tip='Validate a single GeoPackage file',
+            status_tip='단일 파일 검사',
             parent=self.iface.mainWindow())
         
         # Batch validation action
         self.add_action(
             icon_path,
-            text='Batch Validator',
+            text='해양기본도 검사도구(폴더)',
             callback=self.run_batch,
-            status_tip='Validate multiple GeoPackage files in a folder',
+            status_tip='폴더 내 모든 파일 검사',
             parent=self.iface.mainWindow())
 
     def unload(self):
