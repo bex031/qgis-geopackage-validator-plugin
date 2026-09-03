@@ -4,7 +4,7 @@ Tree model for displaying validation results in hierarchical structure
 """
 
 from qgis.PyQt.QtGui import QStandardItemModel, QStandardItem
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QModelIndex
 
 
 class ResultTreeModel(QStandardItemModel):
@@ -43,7 +43,8 @@ class ResultTreeModel(QStandardItemModel):
         dataset_text = f"+ {dataset_name} : {summary}"
         dataset_item = QStandardItem(dataset_text)
         dataset_item.setEditable(False)
-        dataset_item.setData(gpkg_path, Qt.UserRole)  # Store full path
+        # Store full path as custom data
+        dataset_item.setData(gpkg_path, 32)  # Qt.UserRole = 32
         parent_item.appendRow(dataset_item)
         return dataset_item
 
@@ -64,7 +65,8 @@ class ResultTreeModel(QStandardItemModel):
         
         check_item = QStandardItem(check_text)
         check_item.setEditable(False)
-        check_item.setData(status, Qt.UserRole)  # Store status for easy access
+        # Store status as custom data (Qt.UserRole = 32)
+        check_item.setData(status, 32)
         parent_item.appendRow(check_item)
         return check_item
 
