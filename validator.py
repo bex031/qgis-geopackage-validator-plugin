@@ -20,8 +20,10 @@ from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal, QObject
 from qgis.core import QgsMessageLog, Qgis
 
 from .validator_engine import ValidatorEngine
+from .tif_validator_engine import TifValidatorEngine
 from .ui.validator_dialog import ValidatorDialog
 from .ui.batch_validator_dialog import BatchValidatorDialog
+from .ui.batch_tif_validator_dialog import BatchTifValidatorDialog
 
 
 class GeoPackageValidator:
@@ -42,7 +44,9 @@ class GeoPackageValidator:
         
         self.dialog = None
         self.batch_dialog = None
+        self.batch_tif_dialog = None
         self.engine = ValidatorEngine()
+        self.tif_engine = TifValidatorEngine()
 
     def add_action(self, icon_path, text, callback, enabled_flag=True,
                    add_to_menu=True, add_to_toolbar=True,
@@ -118,20 +122,28 @@ class GeoPackageValidator:
 
         icon_path = os.path.join(self.plugin_dir, 'icon.png')
         
-        # Single file validation action
+        # Single file validation action (GeoPackage)
         self.add_action(
             icon_path,
             text='해양기본도 검사도구',
             callback=self.run,
-            status_tip='단일 파일 검사',
+            status_tip='단일 파일 검사 (GeoPackage)',
             parent=self.iface.mainWindow())
         
-        # Batch validation action
+        # Batch validation action (GeoPackage)
         self.add_action(
             icon_path,
             text='해양기본도 검사도구(폴더)',
             callback=self.run_batch,
-            status_tip='폴더 내 모든 파일 검사',
+            status_tip='폴더 내 모든 파일 검사 (GeoPackage)',
+            parent=self.iface.mainWindow())
+        
+        # Batch TIF validation action
+        self.add_action(
+            icon_path,
+            text='MBT TIF 검사도구(폴더)',
+            callback=self.run_batch_tif,
+            status_tip='폴더 내 MBT TIF 파일 검사',
             parent=self.iface.mainWindow())
 
     def unload(self):
@@ -144,6 +156,10 @@ class GeoPackageValidator:
         if self.batch_dialog is not None:
             self.batch_dialog.close()
             self.batch_dialog = None
+        
+        if self.batch_tif_dialog is not None:
+            self.batch_tif_dialog.close()
+            self.batch_tif_dialog = None
         
         # Close database connection
         if self.engine:
@@ -165,8 +181,12 @@ class GeoPackageValidator:
         """Called when the batch dialog is closed."""
         self.batch_dialog = None
 
+    def on_batch_tif_dialog_closed(self):
+        """Called when the batch TIF dialog is closed."""
+        self.batch_tif_dialog = None
+
     def run(self):
-        """Run single file validator."""
+        """Run single file validator (GeoPackage)."""
         if self.dialog is None:
             self.dialog = ValidatorDialog(self.iface, self.engine)
             # Connect close signal to reset dialog reference
@@ -177,9 +197,17 @@ class GeoPackageValidator:
             self.dialog.activateWindow()
 
     def run_batch(self):
-        """Run batch validator."""
+        """Run batch validator (GeoPackage)."""
         # Always create a new instance to avoid reopening issues
         self.batch_dialog = BatchValidatorDialog(self.iface, self.engine)
         # Connect close signal to reset dialog reference
         self.batch_dialog.closed.connect(self.on_batch_dialog_closed)
         self.batch_dialog.show()
+
+    def run_batch_tif(self):
+        """Run batch TIF validator."""
+        # Always create a new instance to avoid reopening issues
+        self.batch_tif_dialog = BatchTifValidatorDialog(self.iface, self.tif_engine)
+        # Connect close signal to reset dialog reference
+        self.batch_tif_dialog.closed.connect(self.on_batch_tif_dialog_closed)
+        self.batch_tif_dialog.show()
