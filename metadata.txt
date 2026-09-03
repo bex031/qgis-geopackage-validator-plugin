@@ -1,0 +1,21 @@
+# This file contains metadata for your plugin.
+
+[general]
+name=GeoPackage Validator
+qgisMinimumVersion=3.0
+description=Validates GeoPackage datasets against YAML-defined rules
+version=0.1.0
+author=Your Name
+email=your.email@example.com
+about=A QGIS plugin for validating GeoPackage files using customizable YAML rules
+tracker=https://github.com/bex031/qgis-geopackage-validator-plugin/issues
+repository=https://github.com/bex031/qgis-geopackage-validator-plugin
+changelog=
+    0.1.0 - Initial release
+
+tags=validation,geopackage,quality-control,yaml
+
+category=Plugins
+icon=icon.png
+experimental=False
+deprecated=False
