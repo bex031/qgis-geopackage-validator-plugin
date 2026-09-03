@@ -94,6 +94,7 @@ class ValidatorEngine:
             result = {
                 'checkID': check.get('CheckID', 'Unknown'),
                 'description': check.get('Description', ''),
+                'details': check.get('Details', ''),  # Add Details from YAML
                 'level': check.get('Level', 'Unknown'),
                 'category': check.get('Category', ''),
                 'status': 'PASS',
