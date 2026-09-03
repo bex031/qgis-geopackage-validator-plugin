@@ -6,6 +6,8 @@ Batch Validator Dialog - for validating multiple GeoPackage files in a folder
 import os
 from pathlib import Path
 from datetime import datetime
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
@@ -39,6 +41,7 @@ class BatchValidatorDialog(QDialog):
         self.rule_path = None
         self.worker_thread = None
         self.worker = None
+        self.summary = None  # Store summary for export
         
         self.setWindowTitle("GeoPackage Batch Validator")
         self.setGeometry(100, 100, 1200, 800)
@@ -95,7 +98,7 @@ class BatchValidatorDialog(QDialog):
         status_layout = QHBoxLayout()
         self.status_label = QLabel("Ready")
         status_layout.addWidget(self.status_label)
-        self.export_btn = QPushButton("Export Results")
+        self.export_btn = QPushButton("Export Results (XML)")
         self.export_btn.clicked.connect(self.export_results)
         self.export_btn.setEnabled(False)
         status_layout.addWidget(self.export_btn)
@@ -142,6 +145,7 @@ class BatchValidatorDialog(QDialog):
         self.progress_bar.setValue(0)
         self.status_label.setText("Scanning folder...")
         self.tree_model.clear()
+        self.summary = None
         
         # Clean up previous worker thread if exists
         if self.worker_thread is not None:
@@ -195,6 +199,9 @@ class BatchValidatorDialog(QDialog):
         self.progress_bar.setValue(100)
         self.validate_btn.setEnabled(True)
         self.export_btn.setEnabled(True)
+        
+        # Store summary for export
+        self.summary = summary
         
         # Build results tree
         self.build_results_tree(summary)
@@ -254,7 +261,7 @@ class BatchValidatorDialog(QDialog):
             # Check if there was an error loading the file
             if 'error' in file_data:
                 dataset_item = self.tree_model.add_dataset(
-                    root_item, filename, gpkg_path, 0, 0, 0
+                    root_item, filename, gpkg_path, 0, 0, 1
                 )
                 self.tree_model.add_error(dataset_item, file_data['error'])
                 continue
@@ -310,8 +317,8 @@ class BatchValidatorDialog(QDialog):
         self.results_tree.expand(root_index)
 
     def export_results(self):
-        """Export validation results to a file."""
-        if self.tree_model.rowCount() == 0:
+        """Export validation results to XML file."""
+        if self.summary is None or self.tree_model.rowCount() == 0:
             QMessageBox.warning(self, "No Results", "No results to export")
             return
         
@@ -319,13 +326,12 @@ class BatchValidatorDialog(QDialog):
             self,
             "Export Batch Results",
             "",
-            "Text Files (*.txt);;CSV Files (*.csv)"
+            "XML Files (*.xml)"
         )
         
         if file_path:
             try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    self.write_tree_to_file(f, self.tree_model.invisibleRootItem(), "")
+                self.write_xml_export(file_path, self.summary)
                 
                 QMessageBox.information(
                     self,
@@ -340,17 +346,84 @@ class BatchValidatorDialog(QDialog):
                     f"Failed to export results:\n{str(e)}"
                 )
 
-    def write_tree_to_file(self, file, item, indent):
-        """Recursively write tree items to file.
+    def write_xml_export(self, file_path, summary):
+        """Write validation results to XML file.
         
-        :param file: File object
-        :param item: Tree item
-        :param indent: Current indentation level
+        :param file_path: Path to output XML file
+        :param summary: Validation summary dictionary
         """
-        for row in range(item.rowCount()):
-            child = item.child(row)
-            file.write(f"{indent}{child.text()}\n")
-            self.write_tree_to_file(file, child, indent + "  ")
+        # Create root element
+        validation_elem = ET.Element('Validation')
+        validation_elem.set('start', summary['start_time'])
+        validation_elem.set('end', summary['end_time'])
+        
+        # Create Datasets element
+        datasets_elem = ET.SubElement(validation_elem, 'Datasets')
+        
+        # Process each dataset
+        for gpkg_path, file_data in summary['results'].items():
+            filename = file_data['filename']
+            dataset_elem = ET.SubElement(datasets_elem, 'Dataset')
+            dataset_elem.set('Name', filename)
+            
+            # Add Summary
+            summary_elem = ET.SubElement(dataset_elem, 'Summary')
+            
+            # Check if there was an error
+            if 'error' in file_data:
+                error_elem = ET.SubElement(summary_elem, 'Error')
+                error_elem.text = file_data['error']
+                ET.SubElement(summary_elem, 'Total').text = '0'
+                ET.SubElement(summary_elem, 'Passed').text = '0'
+                ET.SubElement(summary_elem, 'Failed').text = '0'
+                ET.SubElement(summary_elem, 'Errors').text = '1'
+            else:
+                results = file_data['results']
+                passed = sum(1 for r in results if r['status'] == 'PASS')
+                failed = sum(1 for r in results if r['status'] == 'FAIL')
+                errors = sum(1 for r in results if r['status'] == 'ERROR')
+                total = len(results)
+                
+                ET.SubElement(summary_elem, 'Total').text = str(total)
+                ET.SubElement(summary_elem, 'Passed').text = str(passed)
+                ET.SubElement(summary_elem, 'Failed').text = str(failed)
+                ET.SubElement(summary_elem, 'Errors').text = str(errors)
+                
+                # Add Checks
+                checks_elem = ET.SubElement(dataset_elem, 'Checks')
+                
+                for result in results:
+                    check_elem = ET.SubElement(checks_elem, 'Check')
+                    check_elem.set('Id', result['checkID'])
+                    check_elem.set('Description', result['description'])
+                    check_elem.set('Details', result.get('details', ''))
+                    check_elem.set('Status', result['status'])
+                    
+                    # Add issues if FAIL
+                    if result['status'] == 'FAIL' and result['issues']:
+                        issues_elem = ET.SubElement(check_elem, 'Issues')
+                        issues_elem.set('Count', str(len(result['issues'])))
+                        
+                        for idx, issue in enumerate(result['issues']):
+                            issue_elem = ET.SubElement(issues_elem, 'Issue')
+                            issue_elem.set('Number', str(idx + 1))
+                            issue_elem.text = str(issue)
+                    
+                    # Add error if ERROR
+                    elif result['status'] == 'ERROR' and result['error']:
+                        error_elem = ET.SubElement(check_elem, 'Error')
+                        error_elem.text = result['error']
+        
+        # Pretty print XML
+        xml_str = minidom.parseString(ET.tostring(validation_elem)).toprettyxml(indent="  ")
+        
+        # Remove XML declaration and extra blank lines
+        xml_lines = xml_str.split('\n')[1:]  # Skip XML declaration
+        xml_str = '\n'.join([line for line in xml_lines if line.strip()])
+        
+        # Write to file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(xml_str)
 
     def closeEvent(self, event):
         """Handle dialog close event.
