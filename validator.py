@@ -123,6 +123,15 @@ class GeoPackageValidator:
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
+        # Close dialog if it's open
+        if self.dialog is not None:
+            self.dialog.close()
+            self.dialog = None
+        
+        # Close database connection
+        if self.engine:
+            self.engine.close()
+        
         for action in self.actions:
             self.iface.removePluginMenu(
                 '&GeoPackage Validator',
@@ -131,10 +140,16 @@ class GeoPackageValidator:
 
         del self.toolbar
 
+    def on_dialog_closed(self):
+        """Called when the dialog is closed."""
+        self.dialog = None
+
     def run(self):
         """Run method that performs all the real work"""
         if self.dialog is None:
             self.dialog = ValidatorDialog(self.iface, self.engine)
+            # Connect close signal to reset dialog reference
+            self.dialog.closed.connect(self.on_dialog_closed)
             self.dialog.show()
         else:
             self.dialog.raise_()
