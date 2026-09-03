@@ -9,7 +9,7 @@ from datetime import datetime
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QFileDialog, QTreeView, QProgressBar, QMessageBox, QWidget,
-    QHeaderView
+    QGroupBox
 )
 from qgis.PyQt.QtCore import Qt, QThread, pyqtSignal
 
@@ -34,48 +34,42 @@ class BatchTifValidatorDialog(QDialog):
         self.worker = None
         self.worker_thread = None
         
-        self.setWindowTitle("Batch TIF Validator")
-        self.setGeometry(100, 100, 900, 700)
+        self.setWindowTitle("MBT TIF 검사도구(폴더)")
+        self.setGeometry(100, 100, 1200, 800)
         
-        self.setup_ui()
+        self.init_ui()
         self.current_folder = None
+        self.validation_summary = None
 
-    def setup_ui(self):
+    def init_ui(self):
         """Set up the user interface."""
-        main_layout = QVBoxLayout()
+        layout = QVBoxLayout()
         
         # Folder selection section
         folder_layout = QHBoxLayout()
-        folder_label = QLabel("Validation Folder:")
-        self.folder_path_label = QLabel("No folder selected")
-        self.folder_path_label.setStyleSheet("color: gray; font-style: italic;")
-        browse_btn = QPushButton("Browse")
-        browse_btn.clicked.connect(self.select_folder)
+        folder_layout.addWidget(QLabel("Folder:"))
+        self.folder_label = QLabel("(not selected)")
+        folder_layout.addWidget(self.folder_label)
+        self.folder_btn = QPushButton("Browse...")
+        self.folder_btn.clicked.connect(self.select_folder)
+        folder_layout.addWidget(self.folder_btn)
+        layout.addLayout(folder_layout)
         
-        folder_layout.addWidget(folder_label)
-        folder_layout.addWidget(self.folder_path_label)
-        folder_layout.addStretch()
-        folder_layout.addWidget(browse_btn)
-        main_layout.addLayout(folder_layout)
-        
-        # Progress section
-        progress_layout = QHBoxLayout()
-        progress_label = QLabel("Progress:")
+        # Progress bar
         self.progress_bar = QProgressBar()
-        self.progress_bar.setValue(0)
-        progress_layout.addWidget(progress_label)
-        progress_layout.addWidget(self.progress_bar)
-        main_layout.addLayout(progress_layout)
+        self.progress_bar.setVisible(False)
+        layout.addWidget(self.progress_bar)
         
-        # Result tree view
-        tree_label = QLabel("Validation Results:")
-        main_layout.addWidget(tree_label)
-        
+        # Results tree
+        results_group = QGroupBox("Validation Results")
+        results_layout = QVBoxLayout()
         self.tree_model = TifResultTreeModel()
         self.tree_view = QTreeView()
         self.tree_view.setModel(self.tree_model)
-        self.tree_view.header().setSectionResizeMode(0, 1)
-        main_layout.addWidget(self.tree_view)
+        self.tree_view.setColumnWidth(0, 800)
+        results_layout.addWidget(self.tree_view)
+        results_group.setLayout(results_layout)
+        layout.addWidget(results_group)
         
         # Control buttons
         button_layout = QHBoxLayout()
@@ -92,17 +86,16 @@ class BatchTifValidatorDialog(QDialog):
         self.stop_btn.clicked.connect(self.stop_validation)
         self.stop_btn.setEnabled(False)
         
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.close_dialog)
+        self.status_label = QLabel("Ready")
         
         button_layout.addWidget(self.validate_btn)
         button_layout.addWidget(self.export_btn)
         button_layout.addWidget(self.stop_btn)
+        button_layout.addWidget(self.status_label)
         button_layout.addStretch()
-        button_layout.addWidget(close_btn)
-        main_layout.addLayout(button_layout)
+        layout.addLayout(button_layout)
         
-        self.setLayout(main_layout)
+        self.setLayout(layout)
 
     def select_folder(self):
         """Open folder selection dialog."""
@@ -114,8 +107,7 @@ class BatchTifValidatorDialog(QDialog):
         
         if folder:
             self.current_folder = folder
-            self.folder_path_label.setText(folder)
-            self.folder_path_label.setStyleSheet("color: black; font-style: normal;")
+            self.folder_label.setText(Path(folder).name)
             self.validate_btn.setEnabled(True)
             self.tree_model.removeRows(0, self.tree_model.rowCount())
             self.progress_bar.setValue(0)
@@ -130,9 +122,11 @@ class BatchTifValidatorDialog(QDialog):
         # Clear previous results
         self.tree_model.removeRows(0, self.tree_model.rowCount())
         self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(True)
         self.validate_btn.setEnabled(False)
         self.export_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
+        self.status_label.setText("Scanning folder...")
         
         # Create worker thread
         self.worker_thread = QThread()
@@ -162,7 +156,7 @@ class BatchTifValidatorDialog(QDialog):
         
         :param filename: Name of the file
         """
-        pass  # Can be used to update status
+        self.status_label.setText(f"Validating: {filename}")
 
     def on_file_completed(self, filename, results):
         """Called when validation of a file completes.
@@ -230,6 +224,7 @@ class BatchTifValidatorDialog(QDialog):
         
         :param summary: Summary dictionary with results
         """
+        self.progress_bar.setVisible(False)
         self.stop_btn.setEnabled(False)
         self.validate_btn.setEnabled(True)
         self.export_btn.setEnabled(True)
@@ -254,19 +249,36 @@ class BatchTifValidatorDialog(QDialog):
                       f"Failed: {failed_files}\n" \
                       f"Errors: {error_files}"
         
+        self.status_label.setText(f"Batch validation completed: {total} files processed")
         QMessageBox.information(self, "Validation Complete", summary_text)
         
         # Store summary for export
         self.validation_summary = summary
+        
+        # Clean up worker thread
+        if self.worker_thread is not None:
+            self.worker_thread.quit()
+            self.worker_thread.wait()
+            self.worker_thread = None
+            self.worker = None
 
     def on_validation_error(self, error_msg):
         """Called when an error occurs during validation.
         
         :param error_msg: Error message
         """
+        self.progress_bar.setVisible(False)
         self.stop_btn.setEnabled(False)
         self.validate_btn.setEnabled(True)
+        self.status_label.setText("Batch validation failed")
         QMessageBox.critical(self, "Validation Error", error_msg)
+        
+        # Clean up worker thread
+        if self.worker_thread is not None:
+            self.worker_thread.quit()
+            self.worker_thread.wait()
+            self.worker_thread = None
+            self.worker = None
 
     def stop_validation(self):
         """Stop the validation process."""
@@ -277,10 +289,12 @@ class BatchTifValidatorDialog(QDialog):
             self.worker_thread.wait()
         self.stop_btn.setEnabled(False)
         self.validate_btn.setEnabled(True)
+        self.progress_bar.setVisible(False)
+        self.status_label.setText("Validation stopped")
 
     def export_results(self):
         """Export validation results to XML."""
-        if not hasattr(self, 'validation_summary'):
+        if not self.validation_summary:
             QMessageBox.warning(self, "Warning", "No validation results to export.")
             return
         
@@ -346,7 +360,3 @@ class BatchTifValidatorDialog(QDialog):
             self.stop_validation()
         self.closed.emit()
         super().closeEvent(event)
-
-    def close_dialog(self):
-        """Close the dialog."""
-        self.close()
