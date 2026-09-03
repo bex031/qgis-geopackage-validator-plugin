@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
-from .tif_validator_engine import TifValidatorEngine
+from ..tif_validator_engine import TifValidatorEngine
 
 
 class BatchTifValidationWorker(QObject):
