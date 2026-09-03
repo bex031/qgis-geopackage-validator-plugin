@@ -347,7 +347,7 @@ class BatchValidatorDialog(QDialog):
                 )
 
     def write_xml_export(self, file_path, summary):
-        """Write validation results to XML file.
+        """Write validation results to XML file (only FAIL and ERROR).
         
         :param file_path: Path to output XML file
         :param summary: Validation summary dictionary
@@ -363,14 +363,14 @@ class BatchValidatorDialog(QDialog):
         # Process each dataset
         for gpkg_path, file_data in summary['results'].items():
             filename = file_data['filename']
-            dataset_elem = ET.SubElement(datasets_elem, 'Dataset')
-            dataset_elem.set('Name', filename)
-            
-            # Add Summary
-            summary_elem = ET.SubElement(dataset_elem, 'Summary')
             
             # Check if there was an error
             if 'error' in file_data:
+                dataset_elem = ET.SubElement(datasets_elem, 'Dataset')
+                dataset_elem.set('Name', filename)
+                
+                # Add Summary
+                summary_elem = ET.SubElement(dataset_elem, 'Summary')
                 error_elem = ET.SubElement(summary_elem, 'Error')
                 error_elem.text = file_data['error']
                 ET.SubElement(summary_elem, 'Total').text = '0'
@@ -384,35 +384,44 @@ class BatchValidatorDialog(QDialog):
                 errors = sum(1 for r in results if r['status'] == 'ERROR')
                 total = len(results)
                 
-                ET.SubElement(summary_elem, 'Total').text = str(total)
-                ET.SubElement(summary_elem, 'Passed').text = str(passed)
-                ET.SubElement(summary_elem, 'Failed').text = str(failed)
-                ET.SubElement(summary_elem, 'Errors').text = str(errors)
-                
-                # Add Checks
-                checks_elem = ET.SubElement(dataset_elem, 'Checks')
-                
-                for result in results:
-                    check_elem = ET.SubElement(checks_elem, 'Check')
-                    check_elem.set('Id', result['checkID'])
-                    check_elem.set('Description', result['description'])
-                    check_elem.set('Details', result.get('details', ''))
-                    check_elem.set('Status', result['status'])
+                # Only add dataset if there are FAIL or ERROR
+                if failed > 0 or errors > 0:
+                    dataset_elem = ET.SubElement(datasets_elem, 'Dataset')
+                    dataset_elem.set('Name', filename)
                     
-                    # Add issues if FAIL
-                    if result['status'] == 'FAIL' and result['issues']:
-                        issues_elem = ET.SubElement(check_elem, 'Issues')
-                        issues_elem.set('Count', str(len(result['issues'])))
-                        
-                        for idx, issue in enumerate(result['issues']):
-                            issue_elem = ET.SubElement(issues_elem, 'Issue')
-                            issue_elem.set('Number', str(idx + 1))
-                            issue_elem.text = str(issue)
+                    # Add Summary
+                    summary_elem = ET.SubElement(dataset_elem, 'Summary')
+                    ET.SubElement(summary_elem, 'Total').text = str(total)
+                    ET.SubElement(summary_elem, 'Passed').text = str(passed)
+                    ET.SubElement(summary_elem, 'Failed').text = str(failed)
+                    ET.SubElement(summary_elem, 'Errors').text = str(errors)
                     
-                    # Add error if ERROR
-                    elif result['status'] == 'ERROR' and result['error']:
-                        error_elem = ET.SubElement(check_elem, 'Error')
-                        error_elem.text = result['error']
+                    # Add Checks (only FAIL and ERROR)
+                    checks_elem = ET.SubElement(dataset_elem, 'Checks')
+                    
+                    for result in results:
+                        # Only add FAIL and ERROR checks
+                        if result['status'] == 'FAIL' or result['status'] == 'ERROR':
+                            check_elem = ET.SubElement(checks_elem, 'Check')
+                            check_elem.set('Id', result['checkID'])
+                            check_elem.set('Description', result['description'])
+                            check_elem.set('Details', result.get('details', ''))
+                            check_elem.set('Status', result['status'])
+                            
+                            # Add issues if FAIL
+                            if result['status'] == 'FAIL' and result['issues']:
+                                issues_elem = ET.SubElement(check_elem, 'Issues')
+                                issues_elem.set('Count', str(len(result['issues'])))
+                                
+                                for idx, issue in enumerate(result['issues']):
+                                    issue_elem = ET.SubElement(issues_elem, 'Issue')
+                                    issue_elem.set('Number', str(idx + 1))
+                                    issue_elem.text = str(issue)
+                            
+                            # Add error if ERROR
+                            elif result['status'] == 'ERROR' and result['error']:
+                                error_elem = ET.SubElement(check_elem, 'Error')
+                                error_elem.text = result['error']
         
         # Pretty print XML
         xml_str = minidom.parseString(ET.tostring(validation_elem)).toprettyxml(indent="  ")
