@@ -92,13 +92,11 @@ class ResultTreeModel(QStandardItemModel):
         
         :param parent_item: Parent item (check)
         :param issue_count: Number of issues found
-        :param details: Additional details
+        :param details: Additional details (not used, to avoid duplication)
         :return: Issues group item
         """
-        if details:
-            issues_text = f"({issue_count}) Issues found : {details}"  # Removed '+'
-        else:
-            issues_text = f"({issue_count}) Issues found"  # Removed '+'
+        # Only show issue count, no details to avoid duplication
+        issues_text = f"({issue_count}) Issues found"
         
         issues_item = QStandardItem(issues_text)
         issues_item.setEditable(False)
