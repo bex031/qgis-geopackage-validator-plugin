@@ -45,6 +45,15 @@ class ResultTreeModel(QStandardItemModel):
         dataset_item.setEditable(False)
         # Store full path as custom data
         dataset_item.setData(gpkg_path, 32)  # Qt.UserRole = 32
+        
+        # Highlight dataset if there are failures or errors
+        if failed > 0 or errors > 0:
+            font = QFont()
+            font.setBold(True)
+            dataset_item.setFont(font)
+            dataset_item.setForeground(QColor(255, 0, 0))  # Red text
+            dataset_item.setBackground(QColor(255, 200, 200))  # Light red background
+        
         parent_item.appendRow(dataset_item)
         return dataset_item
 
@@ -59,9 +68,9 @@ class ResultTreeModel(QStandardItemModel):
         :return: Check item
         """
         if details:
-            check_text = f"+ {check_id} : [{status}] {description} / {details}"
+            check_text = f"{check_id} : [{status}] {description} / {details}"  # Removed '+'
         else:
-            check_text = f"+ {check_id} : [{status}] {description}"
+            check_text = f"{check_id} : [{status}] {description}"  # Removed '+'
         
         check_item = QStandardItem(check_text)
         check_item.setEditable(False)
@@ -87,9 +96,9 @@ class ResultTreeModel(QStandardItemModel):
         :return: Issues group item
         """
         if details:
-            issues_text = f"+ ({issue_count}) Issues found : {details}"
+            issues_text = f"({issue_count}) Issues found : {details}"  # Removed '+'
         else:
-            issues_text = f"+ ({issue_count}) Issues found"
+            issues_text = f"({issue_count}) Issues found"  # Removed '+'
         
         issues_item = QStandardItem(issues_text)
         issues_item.setEditable(False)
@@ -103,7 +112,7 @@ class ResultTreeModel(QStandardItemModel):
         :param issue_data: Issue data (tuple or string)
         :return: Issue result item
         """
-        result_text = f"  {str(issue_data)}"
+        result_text = f"{str(issue_data)}"
         result_item = QStandardItem(result_text)
         result_item.setEditable(False)
         parent_item.appendRow(result_item)
@@ -116,7 +125,7 @@ class ResultTreeModel(QStandardItemModel):
         :param error_message: Error message
         :return: Error item
         """
-        error_text = f"+ ERROR : {error_message}"
+        error_text = f"ERROR : {error_message}"  # Removed '+'
         error_item = QStandardItem(error_text)
         error_item.setEditable(False)
         # Highlight errors in red
