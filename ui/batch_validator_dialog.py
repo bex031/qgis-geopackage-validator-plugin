@@ -89,6 +89,7 @@ class BatchValidatorDialog(QDialog):
         font = results_group.font()
         font.setBold(True)
         results_group.setFont(font)
+
         results_layout = QVBoxLayout()
         self.results_tree = QTreeView()
         self.tree_model = ResultTreeModel()
@@ -251,7 +252,7 @@ class BatchValidatorDialog(QDialog):
         :param summary: Dictionary with validation summary
         """
         # Clear existing tree
-        self.tree_model.clear()
+        self.tree_model.removeRows(0, self.tree_model.rowCount())
         
         # Add root validation run node
         start_time = summary['start_time']
