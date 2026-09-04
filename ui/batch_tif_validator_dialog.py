@@ -72,9 +72,9 @@ class BatchTifValidatorDialog(QDialog):
         # Results tree
         results_group = QGroupBox("Validation Results")
         # Make group box title bold
-        font = results_group.font()
-        font.setBold(True)
-        results_group.setFont(font)
+        # font = results_group.font()
+        # font.setBold(True)
+        # results_group.setFont(font)
         
         results_layout = QVBoxLayout()
         self.tree_model = TifResultTreeModel()

@@ -44,7 +44,8 @@ class BatchValidatorDialog(QDialog):
     def init_ui(self):
         """Initialize the user interface."""
         layout = QVBoxLayout()
-        
+
+        # Folder selection section
         folder_layout = QHBoxLayout()
         folder_layout.addWidget(QLabel("Folder:"))
         self.folder_label = QLabel("(not selected)")
@@ -53,7 +54,8 @@ class BatchValidatorDialog(QDialog):
         self.folder_btn.clicked.connect(self.select_folder)
         folder_layout.addWidget(self.folder_btn)
         layout.addLayout(folder_layout)
-        
+
+        # Valiation rule selection section
         rule_layout = QHBoxLayout()
         rule_layout.addWidget(QLabel("Rule File (YAML):"))
         self.rule_label = QLabel("(not selected)")
@@ -62,29 +64,29 @@ class BatchValidatorDialog(QDialog):
         self.rule_btn.clicked.connect(self.select_rule)
         rule_layout.addWidget(self.rule_btn)
         layout.addLayout(rule_layout)
-        
+
+        # Validation button
         self.validate_btn = QPushButton("Run Batch Validation")
         self.validate_btn.clicked.connect(self.run_validation)
         self.validate_btn.setEnabled(False)
         layout.addWidget(self.validate_btn)
-        
+
+        # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         layout.addWidget(self.progress_bar)
-        
-        # Bold only the group-box title. Do not set the font on the group box,
-        # because child widgets can inherit that bold font.
+
+        # Results tree        
         results_group = QGroupBox("Validation Results")
-        results_group.setStyleSheet(
-            "QGroupBox::title { font-weight: bold; }"
-        )
+        # Make group box title bold
+        # font = results_group.font()
+        # font.setBold(True)
+        # results_group.setFont(font)
+
         results_layout = QVBoxLayout()
         self.results_tree = QTreeView()
         self.tree_model = ResultTreeModel()
         self.results_tree.setModel(self.tree_model)
-        tree_font = self.results_tree.font()
-        tree_font.setBold(False)
-        self.results_tree.setFont(tree_font)
         self.results_tree.setColumnWidth(0, 800)
         results_layout.addWidget(self.results_tree)
         results_group.setLayout(results_layout)
