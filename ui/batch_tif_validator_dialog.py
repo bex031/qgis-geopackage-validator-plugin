@@ -162,7 +162,7 @@ class BatchTifValidatorDialog(QDialog):
         """Called when validation of a file completes.
         
         :param filename: Name of the file
-        :param results: Validation results
+        :param results: Validation results dictionary
         """
         if results is None:
             return
@@ -174,7 +174,7 @@ class BatchTifValidatorDialog(QDialog):
         else:
             root_item = self.tree_model.item(0)
         
-        # Add file item
+        # Add file item (dataset)
         tif_path = results.get('tif_path', '')
         status = results.get('status', 'UNKNOWN')
         
@@ -193,6 +193,7 @@ class BatchTifValidatorDialog(QDialog):
             elif check_status == 'ERROR':
                 errors += 1
         
+        # Add dataset node
         file_item = self.tree_model.add_file(root_item, filename, tif_path, passed, failed, errors)
         
         # Add check items
@@ -205,11 +206,14 @@ class BatchTifValidatorDialog(QDialog):
             
             check_item = self.tree_model.add_check(file_item, check_id, check_status, description)
             
-            # Add issues group if there are issues
+            # Add issues/errors if there are any
             if issue_count > 0 and issues:
                 # Format issues for display
-                issue_details = ", ".join([str(issue) for issue in issues])
-                self.tree_model.add_issues_group(check_item, issue_count, issue_details)
+                issue_details = []
+                for issue in issues:
+                    issue_details.append(str(issue))
+                issue_text = ", ".join(issue_details)
+                self.tree_model.add_issues_group(check_item, issue_count, issue_text)
         
         # Handle file-level errors
         error_msg = results.get('error')
@@ -235,7 +239,7 @@ class BatchTifValidatorDialog(QDialog):
             end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             root_item.setText(f"Validation : {end_time.split()[0]} - {end_time}")
         
-        # Show summary message
+        # Calculate statistics
         total = summary.get('total_files', 0)
         results = summary.get('results', {})
         
@@ -243,24 +247,11 @@ class BatchTifValidatorDialog(QDialog):
         failed_files = sum(1 for r in results.values() if r.get('status') == 'FAIL')
         error_files = sum(1 for r in results.values() if r.get('status') == 'ERROR')
         
-        summary_text = f"Validation completed!\n\n" \
-                      f"Total files: {total}\n" \
-                      f"Passed: {passed_files}\n" \
-                      f"Failed: {failed_files}\n" \
-                      f"Errors: {error_files}"
-        
+        # Update status label
         self.status_label.setText(f"Batch validation completed: {total} files processed")
-        QMessageBox.information(self, "Validation Complete", summary_text)
         
         # Store summary for export
         self.validation_summary = summary
-        
-        # Clean up worker thread
-        if self.worker_thread is not None:
-            self.worker_thread.quit()
-            self.worker_thread.wait()
-            self.worker_thread = None
-            self.worker = None
 
     def on_validation_error(self, error_msg):
         """Called when an error occurs during validation.
@@ -320,7 +311,6 @@ class BatchTifValidatorDialog(QDialog):
         :param file_path: Path to save XML file
         :param summary: Validation summary dictionary
         """
-        # This is a simple XML generation. Can be enhanced with proper XML library
         xml_lines = ['<?xml version="1.0" encoding="UTF-8"?>']
         xml_lines.append('<TifValidationResults>')
         xml_lines.append(f'  <StartTime>{summary.get("start_time", "")}</StartTime>')
@@ -343,6 +333,7 @@ class BatchTifValidatorDialog(QDialog):
                 xml_lines.append(f'          <CheckID>{check.get("checkID", "")}</CheckID>')
                 xml_lines.append(f'          <Status>{check.get("status", "")}</Status>')
                 xml_lines.append(f'          <Description>{check.get("description", "")}</Description>')
+                xml_lines.append(f'          <Level>{check.get("level", "")}</Level>')
                 xml_lines.append(f'          <IssueCount>{check.get("issue_count", 0)}</IssueCount>')
                 xml_lines.append('        </Check>')
             xml_lines.append('      </Checks>')
