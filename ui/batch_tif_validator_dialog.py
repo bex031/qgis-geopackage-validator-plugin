@@ -14,6 +14,7 @@ from qgis.PyQt.QtWidgets import (
     QFileDialog, QTreeView, QProgressBar, QMessageBox, QGroupBox
 )
 from qgis.PyQt.QtCore import Qt, QThread, pyqtSignal
+from qgis.PyQt.QtGui import QFont
 
 from ..ui.tif_result_tree_model import TifResultTreeModel
 from ..ui.batch_tif_validation_worker import BatchTifValidationWorker
@@ -70,6 +71,11 @@ class BatchTifValidatorDialog(QDialog):
         
         # Results tree
         results_group = QGroupBox("Validation Results")
+        # Make group box title bold
+        font = results_group.font()
+        font.setBold(True)
+        results_group.setFont(font)
+        
         results_layout = QVBoxLayout()
         self.tree_model = TifResultTreeModel()
         self.results_tree = QTreeView()
