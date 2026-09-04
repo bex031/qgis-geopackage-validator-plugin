@@ -85,6 +85,10 @@ class BatchValidatorDialog(QDialog):
         
         # Results tree
         results_group = QGroupBox("Validation Results")
+        # Make group box title bold, matching the TIF validator dialog.
+        font = results_group.font()
+        font.setBold(True)
+        results_group.setFont(font)
         results_layout = QVBoxLayout()
         self.results_tree = QTreeView()
         self.tree_model = ResultTreeModel()
@@ -244,7 +248,7 @@ class BatchValidatorDialog(QDialog):
     def build_results_tree(self, summary):
         """Build the results tree from validation summary.
         
-        :param summary: Dictionary with validation results
+        :param summary: Dictionary with validation summary
         """
         # Clear existing tree
         self.tree_model.clear()
@@ -350,7 +354,7 @@ class BatchValidatorDialog(QDialog):
         """Write validation results to XML file (only FAIL and ERROR).
         
         :param file_path: Path to output XML file
-        :param summary: Validation summary dictionary
+        :param summary: Dictionary with validation results
         """
         # Create root element
         validation_elem = ET.Element('Validation')
