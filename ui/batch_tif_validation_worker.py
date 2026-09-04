@@ -16,7 +16,7 @@ class BatchTifValidationWorker(QObject):
     # Signals
     progress = pyqtSignal(int)  # Progress percentage
     file_started = pyqtSignal(str)  # Filename
-    file_completed = pyqtSignal(str, list)  # Filename, results
+    file_completed = pyqtSignal(str, object)  # Filename, results (object for QGIS 3.44 compatibility)
     finished = pyqtSignal(dict)  # Summary dictionary
     error = pyqtSignal(str)  # Error message
 
@@ -57,16 +57,20 @@ class BatchTifValidationWorker(QObject):
                 # Validate file
                 try:
                     validation_result = self.engine.validate(str(tif_path))
+                    validation_result['tif_path'] = str(tif_path)
                     results[str(tif_path)] = validation_result
                     self.file_completed.emit(filename, validation_result)
                 except Exception as e:
-                    results[str(tif_path)] = {
+                    # Create error result dict with same structure as success
+                    error_result = {
                         'filename': filename,
+                        'tif_path': str(tif_path),
                         'status': 'ERROR',
                         'checks': [],
                         'error': str(e)
                     }
-                    self.file_completed.emit(filename, None)
+                    results[str(tif_path)] = error_result
+                    self.file_completed.emit(filename, error_result)
                 
                 # Update progress
                 progress = int((idx + 1) / total_files * 100)
